@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="c11a2a3e-5634-4204-a5cf-54cb33b634cd" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="ad4b17e8-c191-46e0-b6ec-843755556180" >
+		<jms:active-mq-connection >
+			<jms:factory-configuration brokerUrl="tcp://localhost:20616" />
+		</jms:active-mq-connection>
+		<jms:producer-config persistentDelivery="true" />
+	</jms:config>
+	
+	<file:config name="File_Config" doc:name="File Config" doc:id="fc73839d-d28a-4c3d-9f3c-8031017bf139" >
+		<file:connection workingDir="/Users/joost/Desktop/" />
+	</file:config>
+	<flow name="file-load" doc:id="4d6a6a90-b72a-4e45-a262-415718edb5b0" >
+		<file:listener doc:name="On New or Updated File" doc:id="a2b9f503-05a8-410e-b38f-5f61a9f77919" config-ref="File_Config" directory="input">
+			<scheduling-strategy >
+				<fixed-frequency frequency="5" timeUnit="MINUTES"/>
+			</scheduling-strategy>
+		</file:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="3eeafd38-5183-4f95-8eee-47c5423afac6" message='#["READ FILE BEFORE DW"]'/>
+		<ee:transform doc:name="Transform Message" doc:id="3bf364f3-2eef-46ad-bdfd-c0ba3ffb8060" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map {
+	licensePlate: $.Kenteken,
+	brand: $.Merk,
+	model: $.Handelsbenaming,
+	date: $."Datum tenaamstelling",
+	price: $.Catalogusprijs,
+	recordId: log("Record " ++ $$)	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="9f5fefa5-7250-4d8b-8ab1-25a955365690" message='#["AFTER DW, BEFORE FOR EACH"]' />
+		<foreach doc:name="For Each" doc:id="14f1847e-e3be-4cd6-be36-c52a2e867100" >
+			<logger level="INFO" doc:name="Logger" doc:id="db1d4b49-39aa-4628-a66a-1f323ef5498f" message='#["********* IN FOR EACH *********"]' />
+			<jms:publish doc:name="Publish" doc:id="9d656693-e357-483f-a96e-d771fd8ae236" config-ref="JMS_Config" destination="activemq-mule-test-Q">
+			<reconnect count="10" />
+		</jms:publish>
+		</foreach>
+	</flow>
+	<flow name="http-publish-queue" doc:id="452fe9a3-21c5-43b1-b8e9-e254bb594566" >
+		<http:listener doc:name="Listener" doc:id="b211efa2-54e7-44b4-b0ba-ee47e6a589d7" config-ref="HTTP_Listener_config" path="/"/>
+		<ee:transform doc:name="Transform Message" doc:id="fdab24e0-8f6c-4891-92d4-a905b4848d82" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: 'my Message Data',
+	myId: uuid(),
+	timestamp: now() as String {format: "dd-MM-yyyy_HH:mm:ss"}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="92dd3d48-170c-4124-86db-f9cf83e991fc" message="#[payload]"/>
+		<jms:publish doc:name="Publish" doc:id="e87bbf9d-9449-4c0f-af8a-4a4c4afd1187" config-ref="JMS_Config" destination="activemq-mule-test-Q">
+			<reconnect count="10" />
+		</jms:publish>
+	</flow>
+	
+	<flow name="consume-queue" doc:id="20b853ce-b23e-4b8e-995c-7bc4f9676b01" >
+		<jms:listener doc:name="Listener" doc:id="ada32a8d-bd57-4340-bef6-eeaeabf73356" config-ref="JMS_Config" destination="activemq-mule-test-Q" inboundContentType="application/json" inboundEncoding="UTF-8"/>
+		<logger level="INFO" doc:name="Logger" doc:id="99f49318-7296-4a2d-bd15-0813e69e6c5d" message='#[payload]'/>
+		<file:write doc:name="Write" doc:id="c3b708b9-8b2a-429e-a911-22baa7e1648e" config-ref="File_Config" path="output/rdw.json" mode="APPEND"/>
+	</flow>
+</mule>

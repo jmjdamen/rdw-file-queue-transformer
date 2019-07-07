@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="rdw-csv" format="csv">
+      <types:shape format="weave" example="examples/TESLA_2018_Open_Data_RDW__Gekentekende_voertuigen.csv"><![CDATA[%dw 2.0
+
+type rdw_csv = Array<{|  Kenteken: String,   Voertuigsoort: String,   Merk: String,   Handelsbenaming: String,   "Vervaldatum APK": String,   "Datum tenaamstelling": String,   "Bruto BPM": String,   Inrichting: String,   "Aantal zitplaatsen": String,   "Eerste kleur": String,   "Tweede kleur": String,   "Aantal cilinders": String,   Cilinderinhoud: String,   "Massa ledig voertuig": String,   "Toegestane maximum massa voertuig": String,   "Massa rijklaar": String,   "Maximum massa trekken ongeremd": String,   "Maximum trekken massa geremd": String,   "Retrofit roetfilter": String,   Zuinigheidslabel: String,   "Datum eerste toelating": String,   "Datum eerste afgifte Nederland": String,   "Wacht op keuren": String,   Catalogusprijs: String,   "WAM verzekerd": String,   "Maximale constructiesnelheid (brom/snorfiets)": String,   Laadvermogen: String,   "Oplegger geremd": String,   "Aanhangwagen autonoom geremd": String,   "Aanhangwagen middenas geremd": String,   "Vermogen (brom/snorfiets)": String,   "Aantal staanplaatsen": String,   "Aantal deuren": String,   "Aantal wielen": String,   "Afstand hart koppeling tot achterzijde voertuig": String,   "Afstand voorzijde voertuig tot hart koppeling": String,   "Afwijkende maximum snelheid": String,   Lengte: String,   Breedte: String,   "Europese voertuigcategorie": String,   "Europese voertuigcategorie toevoeging": String,   "Europese uitvoeringcategorie toevoeging": String,   "Plaats chassisnummer": String,   "Technische max. massa voertuig": String,   Type: String,   "Type gasinstallatie": String,   Typegoedkeuringsnummer: String,   Variant: String,   Uitvoering: String,   "Volgnummer wijziging EU typegoedkeuring": String,   "Vermogen massarijklaar": String,   Wielbasis: String,   "Export indicator": String,   "Openstaande terugroepactie indicator": String,   "Vervaldatum tachograaf": String,   "Taxi indicator": String,   "Maximum massa samenstelling": String,   "Aantal rolstoelplaatsen": String,   "Maximum ondersteunende snelheid": String,   "API Gekentekende_voertuigen_assen": String,   "API Gekentekende_voertuigen_brandstof": String,   "API Gekentekende_voertuigen_carrosserie": String,   "API Gekentekende_voertuigen_carrosserie_specifiek": String,   "API Gekentekende_voertuigen_voertuigklasse": String|}>
+
+]]></types:shape>
+      <types:properties>
+        <types:property name="headerLineNumber" value="0"/>
+        <types:property name="header" value="true"/>
+        <types:property name="isQuotedString" value="false"/>
+        <types:property name="separator" value=","/>
+      </types:properties>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#a2b9f503-05a8-410e-b38f-5f61a9f77919">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="rdw-csv"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>
